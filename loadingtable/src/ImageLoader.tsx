@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from 'react';
 
-const ImageLoader: React.FC = () => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+interface ImageLoaderProps {
+  imageUrl: string;
+  altText?: string;
+}
+
+const ImageLoader: React.FC<ImageLoaderProps> = ({ imageUrl, altText = "Loaded image" }) => {
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null); // Add error state
 
   useEffect(() => {
     const loadImage = async () => {
       try {
-        const response = await fetch('https://picsum.photos/id/237/200/300'); // replace image.jpg if necessary
+        const response = await fetch(imageUrl);
         if (!response.ok) {
           throw new Error('Failed to load image');
         }
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
-        setImageUrl(objectUrl);
+        setLoadedImageUrl(objectUrl);
         setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading image:', error);
+      } catch (err: any) {
+        console.error('Error loading image:', err);
+        setError(err.message || "Failed to load image"); // Set error message
         setIsLoading(false);
       }
     };
@@ -24,21 +31,25 @@ const ImageLoader: React.FC = () => {
     loadImage();
 
     return () => {
-      if (imageUrl) {
-        URL.revokeObjectURL(imageUrl); // Clean up object URL on unmount
+      if (loadedImageUrl) {
+        URL.revokeObjectURL(loadedImageUrl);
       }
     };
-  }, []);
+  }, [imageUrl]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>; // Consider a placeholder image or skeleton
   }
 
-  if (imageUrl) {
-    return <img src={imageUrl} alt="Loaded from endpoint" />;
+  if (loadedImageUrl) {
+    return <img src={loadedImageUrl} alt={altText} />;
   }
 
-  return <div>Failed to load image.</div>; // optional error display
+  if (error) {
+    return <div>{error}</div>; // Display error message
+  }
+
+  return null; // Don't show anything if no error and not loading
 };
 
 export default ImageLoader;
